@@ -6,53 +6,53 @@ Version: 1.0
 Author: Tu Nombre
 */
 
-// Registrar los endpoints de la API
+// Register API endpoints
 add_action('rest_api_init', 'mi_rest_api_init');
 
 function mi_rest_api_init() {
-    // Endpoint para obtener la lista de publicaciones
+    // Endpoint to get post list
     register_rest_route('react/v1', '/posts', array(
         'methods' => 'GET',
         'callback' => 'mi_get_posts',
     ));
 
-    // Endpoint para crear una nueva publicación
+    // Endpoint to create a new post
     register_rest_route('react/v1', '/posts', array(
         'methods' => 'POST',
         'callback' => 'mi_create_post',
         'permission_callback' => 'mi_api_permissions',
     ));
 
-    // Endpoint para actualizar una publicación existente
+    // Endpoint to update an existing post
     register_rest_route('react/v1', '/posts/(?P<id>\d+)', array(
         'methods' => 'PUT',
         'callback' => 'mi_update_post',
         'permission_callback' => 'mi_api_permissions',
     ));
 
-    // Endpoint para eliminar una publicación
+    // Endpoint to delete a post
     register_rest_route('react/v1', '/posts/(?P<id>\d+)', array(
         'methods' => 'DELETE',
         'callback' => 'mi_delete_post',
         'permission_callback' => 'mi_api_permissions',
     ));
 
-    // Endpoint para obtener la información de una publicación específica
+    // Endpoint to get the information of a specific post
     register_rest_route('react/v1', '/posts/(?P<id>\d+)', array(
         'methods' => 'GET',
         'callback' => 'mi_get_post',
     ));
 }
 
-// Función para obtener la lista de publicaciones
+// Function to get the list of publications
 function mi_get_posts($request) {
-    // Lógica para obtener las publicaciones desde la base de datos
+    // Logic to get the publications from the database
     $posts = get_posts(array(
         'post_type' => 'post',
         'posts_per_page' => -1,
     ));
 
-    // Formatear los datos de las publicaciones según la estructura requerida
+    // Format post data according to the required structure
     $formatted_posts = array();
     foreach ($posts as $post) {
         $formatted_posts[] = array(
@@ -67,26 +67,26 @@ function mi_get_posts($request) {
         );
     }
 
-    // Retornar los datos formateados en formato JSON
+    // Return the data formatted in JSON format
     return rest_ensure_response($formatted_posts);
 }
 
-// Función para crear una nueva publicación
+// Function to create a new publication
 function mi_create_post($request) {
-    // Verificar si el usuario tiene los permisos necesarios
+    // Check if the user has the necessary permissions
     if (!current_user_can('publish_posts')) {
         return new WP_Error('rest_forbidden', __('No tienes permiso para crear publicaciones.'), array('status' => 403));
     }
 
-    // Obtener los datos enviados en la solicitud
+    // Get the data sent in the request
     $params = $request->get_params();
 
-    // Validar y sanitizar los datos
+    // Validate and sanitize data
     $title = sanitize_text_field($params['title']);
     $content = wp_kses_post($params['content']);
     $meta_fields = $params['meta_fields'];
 
-    // Crear la nueva publicación
+    // Create the new post
     $post_data = array(
         'post_title' => $title,
         'post_content' => $content,
@@ -95,32 +95,32 @@ function mi_create_post($request) {
     );
     $new_post_id = wp_insert_post($post_data);
 
-    // Guardar los metadatos personalizados
+    // Save custom metadata
     foreach ($meta_fields as $meta_field) {
         $key = sanitize_text_field($meta_field['key']);
         $value = sanitize_text_field($meta_field['value']);
         update_post_meta($new_post_id, $key, $value);
     }
 
-    // Retornar la respuesta de éxito
+    // Return success response
     return rest_ensure_response(array('message' => 'Publicación creada con éxito.'));
 }
 
-// Función para actualizar una publicación existente
+// Function to update an existing post
 function mi_update_post($request) {
-    // Verificar si el usuario tiene los permisos necesarios
+    // Check if the user has the necessary permissions
     if (!current_user_can('edit_posts')) {
         return new WP_Error('rest_forbidden', __('No tienes permiso para editar publicaciones.'), array('status' => 403));
     }
 
-    // Obtener los datos enviados en la solicitud
+    // Get the data sent in the request
     $params = $request->get_params();
     $post_id = $params['id'];
     $title = sanitize_text_field($params['title']);
     $content = wp_kses_post($params['content']);
     $meta_fields = $params['meta_fields'];
 
-    // Actualizar la publicación
+    // update post
     $post_data = array(
         'ID' => $post_id,
         'post_title' => $title,
@@ -128,48 +128,48 @@ function mi_update_post($request) {
     );
     wp_update_post($post_data);
 
-    // Actualizar los metadatos personalizados
+    // Update custom metadata
     foreach ($meta_fields as $meta_field) {
         $key = sanitize_text_field($meta_field['key']);
         $value = sanitize_text_field($meta_field['value']);
         update_post_meta($post_id, $key, $value);
     }
 
-    // Retornar la respuesta de éxito
+    // Return success response
     return rest_ensure_response(array('message' => 'Publicación actualizada con éxito.'));
 }
 
-// Función para eliminar una publicación
+// Function to delete a post
 function mi_delete_post($request) {
-    // Verificar si el usuario tiene los permisos necesarios
+    // Check if the user has the necessary permissions
     if (!current_user_can('delete_posts')) {
         return new WP_Error('rest_forbidden', __('No tienes permiso para eliminar publicaciones.'), array('status' => 403));
     }
 
-    // Obtener el ID de la publicación a eliminar
+    // Get the ID of the post to delete
     $post_id = $request['id'];
 
-    // Eliminar la publicación
+    // delete post
     wp_delete_post($post_id, true);
 
-    // Retornar la respuesta de éxito
+    // Return success response
     return rest_ensure_response(array('message' => 'Publicación eliminada con éxito.'));
 }
 
-// Función para obtener la información de una publicación específica
+// Function to get the information of a specific publication
 function mi_get_post($request) {
-    // Obtener el ID de la publicación solicitada
+    // Get the requested post ID
     $post_id = $request['id'];
 
-    // Verificar si la publicación existe
+    // Check if the post exists
     if (!get_post($post_id)) {
         return new WP_Error('rest_not_found', __('No se encontró la publicación solicitada.'), array('status' => 404));
     }
 
-    // Obtener los datos de la publicación
+    // Get post data
     $post = get_post($post_id);
 
-    // Formatear los datos según la estructura requerida
+    // reset to data according to required structure
     $formatted_post = array(
         'id' => $post->ID,
         'slug' => $post->post_name,
@@ -181,11 +181,11 @@ function mi_get_post($request) {
         'meta_fields' => mi_get_post_meta_fields($post->ID),
     );
 
-    // Retornar los datos formateados en formato JSON
+    // Return the data formatted in JSON format
     return rest_ensure_response($formatted_post);
 }
 
-// Función para obtener las categorías de una publicación
+// Function to get the categories of a publication
 function mi_get_post_categories($post_id) {
     $categories = wp_get_post_categories($post_id);
 
@@ -202,7 +202,7 @@ function mi_get_post_categories($post_id) {
     return $formatted_categories;
 }
 
-// Función para obtener los metadatos personalizados de una publicación
+// Function to get the custom metadata of a post
 function mi_get_post_meta_fields($post_id) {
     $meta_fields = get_post_meta($post_id);
 
@@ -219,9 +219,9 @@ function mi_get_post_meta_fields($post_id) {
     return $formatted_meta_fields;
 }
 
-// Función para verificar la autenticación en las solicitudes de API
+// Function to verify authentication on API requests
 function mi_api_permissions() {
-    // Verificar si se proporcionó una clave de autenticación válida en la configuración del plugin
+    // Check if a valid authentication key was provided in plugin settings
     $api_key = get_option('mi_rest_api_settings');
          if (empty($api_key)) {
                return false; 
@@ -232,20 +232,20 @@ function mi_api_permissions() {
         }
 
     if ($api_key && $auth_header) {
-        // Verificar la clave de autenticación
+        // Verify the authentication key
         $token = explode(' ', $auth_header)[1] ?? null;
              if (!$token) {
                 return false; 
               }
     } else {
-        // Si no se proporcionó una clave de autenticación, rechazar la solicitud
+        // If an authentication key was not provided, reject the request
         return false;
     }
 
     return true;
 }
 
-// Agregar la página de configuración del plugin
+// Add plugin settings page
 add_action('admin_menu', 'mi_plugin_menu');
 
 function mi_plugin_menu() {
@@ -274,7 +274,7 @@ function mi_rest_api_settings_page() {
     <?php
 }
 
-// Registrar la opción de configuración
+// Register configuration option
 add_action('admin_init', 'mi_rest_api_register_settings');
 
 function mi_rest_api_register_settings() {
